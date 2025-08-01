@@ -1,0 +1,12 @@
+# 用于HTTP请求和Web抓取
+requests
+beautifulsoup4
+
+# 用于数据处理和分析
+pandas
+scikit-learn
+
+# 用于自然语言处理
+spacy
+wechatsogou
+# 备注: 请额外运行 'python -m spacy download zh_core_web_md' 来下载中文模型
