@@ -46,6 +46,12 @@ class WechatSogouScraper:
                 print(f"未能在搜狗上找到名为 '{official_account_name}' 的公众号。")
                 return []
             
+            # 将生成器转换为列表
+            gzh_info_list = list(gzh_info_list)
+            if not gzh_info_list:
+                print(f"未能在搜狗上找到名为 '{official_account_name}' 的公众号。")
+                return []
+            
             # 默认选择第一个搜索结果，因为通常最匹配
             gzh_profile = gzh_info_list[0]
             print(f"成功找到公众号: {gzh_profile['name']},微信号: {gzh_profile['wechat_id']}")
