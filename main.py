@@ -10,7 +10,7 @@ from scraping.tianyancha_client import TianyanchaClient
 from nlp.standardize import process_jobs_dataframe
 from nlp.entity_extraction import add_entities_to_dataframe
 from matching.similarity import rank_jobs_by_keyword
-from scraping.wechat_sogou_scraper import WechatSogouScraper
+from scraping.wechat_rss_scraper import WechatRssScraper
 
 def run_job_agent(user_keyword, salary_range=None, use_cache=True):
     """
@@ -126,22 +126,25 @@ if __name__ == "__main__":
                 run_job_agent(user_keyword=keywords, salary_range=salary_range, use_cache=False)
 
         elif search_type == '2':
-            oa_name = input("请输入要抓取的公众号的全名: ")
-            if oa_name:
-                # 直接调用新的爬虫
-                sogou_scraper = WechatSogouScraper()
-                raw_jobs = sogou_scraper.scrape(oa_name)
+            # 注意：RSS抓取需要公众号的RSS链接，而不是名称。
+            # 用户需要自行找到目标公众号的RSS链接。
+            # 例如，一些第三方服务可以生成RSS链接，如 https://rss.imzhao.com/
+            rss_url = input("请输入要抓取的公众号的RSS链接 (例如: https://rss.imzhao.com/xxxxxxxx.xml): ")
+            if rss_url:
+                # 直接调用新的RSS爬虫
+                rss_scraper = WechatRssScraper(rss_url=rss_url)
+                raw_jobs = rss_scraper.scrape()
 
                 if raw_jobs:
                     # 获取数据后，可以走同样的数据处理和展示流程
                     df = process_jobs_dataframe(raw_jobs)
                     df = add_entities_to_dataframe(df)
                     print("\n" + "="*50)
-                    print(f"来自公众号【{oa_name}】的最新招聘信息:")
+                    print(f"来自RSS源的最新招聘信息:")
                     print("="*50)
-                    print(df[['title', 'url']].head(10)) # 简单展示结果
+                    print(df[['title', 'company', 'url']].head(10)) # 简单展示结果
                 else:
-                    print("未能从该公众号获取到招聘信息。")
+                    print("未能从该RSS源获取到招聘信息。")
         else:
             print("无效的输入。")
 
