@@ -34,22 +34,53 @@ def send_email(subject, body_html, to_email):
     msg.attach(MIMEText(body_html, 'html', 'utf-8'))
 
     try:
-        # 连接SMTP服务器并发送邮件
-        # 使用 with 语句确保连接被正确关闭
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()  # 启用安全传输模式
-            server.login(SMTP_USERNAME, SMTP_PASSWORD)
-            server.send_message(msg)
+        # 根据端口判断使用SSL还是TLS
+        # 465端口通常用于SSL，587端口通常用于TLS
+        if SMTP_PORT == 465:
+            print(f"尝试使用SSL连接到 {SMTP_SERVER}:{SMTP_PORT}...")
+            # 使用SMTP_SSL，它会自动处理SSL握手，不需要再调用starttls()
+            with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=10) as server:
+                server.set_debuglevel(1)  # 打印调试信息
+                server.login(SMTP_USERNAME, SMTP_PASSWORD)
+                server.send_message(msg)
+        else:
+            print(f"尝试使用TLS连接到 {SMTP_SERVER}:{SMTP_PORT}...")
+            # 使用标准的SMTP，然后手动升级到TLS
+            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as server:
+                server.set_debuglevel(1)  # 打印调试信息
+                server.starttls()  # 启用安全传输模式
+                server.login(SMTP_USERNAME, SMTP_PASSWORD)
+                server.send_message(msg)
+        
         print(f"邮件已成功发送至 {to_email}。")
         return True
+
     except smtplib.SMTPAuthenticationError:
         print("SMTP认证失败，请检查用户名和密码（或应用专用密码）。")
+        print("提示：请确保您在.env文件中使用的是邮箱服务商提供的'应用专用密码'，而不是您的登录密码。")
         return False
-    except smtplib.SMTPConnectError:
-        print(f"无法连接到SMTP服务器 {SMTP_SERVER}:{SMTP_PORT}，请检查服务器地址和端口。")
+    except smtplib.SMTPConnectError as e:
+        print(f"无法连接到SMTP服务器 {SMTP_SERVER}:{SMTP_PORT}，请检查服务器地址、端口或网络连接。错误详情: {e}")
+        return False
+    except smtplib.SMTPServerDisconnected:
+        print("SMTP服务器在操作过程中意外断开连接。这通常是由于服务器端的安全策略阻止了脚本登录。")
+        print("建议解决方案：")
+        print("1. 确保您使用的是'应用专用密码'。")
+        print("2. 对于Gmail用户，尝试在账户设置中开启'不够安全的应用的访问权限'。")
+        print("3. 检查邮箱服务商是否有关于此登录尝试的安全警报，并按照指引操作。")
         return False
     except smtplib.SMTPException as e:
+        # 打印更详细的SMTP错误信息
         print(f"发送邮件时发生SMTP错误: {e}")
+        # 尝试获取更具体的错误码和信息
+        if hasattr(e, 'smtp_code') and hasattr(e, 'smtp_error'):
+            error_detail = e.smtp_error
+            if isinstance(error_detail, bytes):
+                try:
+                    error_detail = error_detail.decode('utf-8')
+                except UnicodeDecodeError:
+                    error_detail = error_detail.decode('latin-1', errors='ignore')
+            print(f"SMTP错误码: {e.smtp_code}, 错误详情: {error_detail}")
         return False
     except Exception as e:
         print(f"发送邮件时发生未知错误: {e}")
@@ -77,10 +108,14 @@ def send_daily_job_report():
         return
 
     try:
-        with open(MATCHED_JOBS_SUMMARY_PATH, 'r', encoding='utf-8') as f:
+        # 使用 errors='replace' 来处理文件中可能存在的非UTF-8编码字符，防止解码失败
+        with open(MATCHED_JOBS_SUMMARY_PATH, 'r', encoding='utf-8', errors='replace') as f:
             report_data = json.load(f)
     except json.JSONDecodeError as e:
         print(f"错误：解析匹配结果文件失败: {e}")
+        return
+    except FileNotFoundError:
+        print(f"错误：匹配结果文件未找到: {MATCHED_JOBS_SUMMARY_PATH}")
         return
     except Exception as e:
         print(f"错误：读取匹配结果文件时发生未知错误: {e}")
