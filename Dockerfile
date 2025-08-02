@@ -2,7 +2,7 @@
 FROM python:3.12-slim
 
 # 设置维护者信息
-LABEL maintainer="your-email@example.com"
+LABEL maintainer="luoh3405@gmail.com"
 
 # 设置容器内的工作目录
 WORKDIR /app
