@@ -19,7 +19,7 @@ class BaseScraper:
         :return: 页面的文本内容，如果失败则返回None
         """
         try:
-            response = self.session.get(url, params=params, timeout=15)
+            response = self.session.get(url, params=params, timeout=30)
             response.raise_for_status()
             response.encoding = response.apparent_encoding
             return response

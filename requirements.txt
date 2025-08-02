@@ -4,10 +4,20 @@ beautifulsoup4
 
 # 用于数据处理和分析
 pandas
-scikit-learn
+# scikit-learn # 已不再需要，可以移除或注释掉
 
-# 用于自然语言处理
-spacy
+# 用于自然语言处理 (旧版SpaCy，保留以防备用)
+# spacy
+# 备注: 请额外运行 'python -m spacy download zh_core_web_md' 来下载中文模型
+
 # 用于解析RSS源
 feedparser
-# 备注: 请额外运行 'python -m spacy download zh_core_web_md' 来下载中文模型
+
+# 用于调用OpenAI API (包括Gemini模型)
+openai
+
+# 用于定时任务
+schedule
+
+# 用于从 .env 文件加载环境变量
+python-dotenv

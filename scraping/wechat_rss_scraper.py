@@ -20,13 +20,25 @@ class WechatRssScraper:
         self.rss_url = rss_url
 
     def scrape_article_content(self, url):
-        """抓取单篇文章的HTML内容"""
+        """抓取单篇文章的HTML内容，并处理编码问题"""
         try:
             response = requests.get(url, headers=HEADERS, timeout=10)
             response.raise_for_status() # 如果请求失败则抛出HTTPError
+            
+            # 显式检测并使用正确的编码解码内容
+            # response.encoding 会根据headers猜测编码，但可能不准
+            # response.apparent_encoding 会根据内容分析编码，更可靠
+            if response.encoding != response.apparent_encoding:
+                print(f"  警告：检测到编码不一致。Headers: {response.encoding}, Apparent: {response.apparent_encoding}。将使用 Apparent Encoding。")
+                response.encoding = response.apparent_encoding
+            
             return response.text
         except requests.RequestException as e:
             print(f"抓取文章失败 {url}: {e}")
+            return ""
+        except Exception as e:
+            # 捕获其他可能的解码错误
+            print(f"处理文章内容时发生未知错误 {url}: {e}")
             return ""
 
     def scrape(self, **kwargs):

@@ -60,7 +60,6 @@ htmlcov/
 # mypy
 .mypy_cache/
 .dmypy.json
-dmypy.json 
-matching/__pycache__/
-nlp/__pycache__/
-scraping/__pycache__/
+dmypy.json
+.env
+data
