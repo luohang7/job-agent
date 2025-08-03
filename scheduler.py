@@ -104,40 +104,51 @@ def send_daily_job_report():
     """
     定时任务：执行数据抓取和处理，然后读取匹配结果并发送邮件
     """
-    print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 执行定时任务：开始数据抓取和处理流程...")
+    print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ====== 定时任务触发：开始执行完整流程 ======")
     
     # 1. 执行数据抓取和处理流水线
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 1/3] 正在调用 main.py 的数据抓取和处理流水线...")
     try:
         run_job_agent_pipeline()
-        print("数据抓取和处理流程执行完毕。")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 1/3] 数据抓取和处理流水线执行成功。")
     except Exception as e:
-        print(f"数据抓取和处理流程执行失败: {e}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 1/3] 错误：数据抓取和处理流水线执行失败: {e}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ====== 定时任务因流水线失败而中止 ======")
         # 如果流水线失败，则不继续发送邮件
         return
 
     # 2. 检查并读取新生成的匹配结果文件
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] 正在检查匹配结果文件: {MATCHED_JOBS_SUMMARY_PATH}...")
     if not os.path.exists(MATCHED_JOBS_SUMMARY_PATH):
-        print(f"错误：匹配结果文件未找到: {MATCHED_JOBS_SUMMARY_PATH}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] 错误：匹配结果文件未找到: {MATCHED_JOBS_SUMMARY_PATH}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ====== 定时任务因文件未找到而中止 ======")
         return
 
     try:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] 成功找到文件，正在读取和解析JSON...")
         # 使用 errors='replace' 来处理文件中可能存在的非UTF-8编码字符，防止解码失败
         with open(MATCHED_JOBS_SUMMARY_PATH, 'r', encoding='utf-8', errors='replace') as f:
             report_data = json.load(f)
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] JSON文件解析成功。")
     except json.JSONDecodeError as e:
-        print(f"错误：解析匹配结果文件失败: {e}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] 错误：解析匹配结果文件失败: {e}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ====== 定时任务因JSON解析失败而中止 ======")
         return
     except FileNotFoundError:
-        print(f"错误：匹配结果文件未找到: {MATCHED_JOBS_SUMMARY_PATH}")
+        # 这个理论上不会发生，因为前面已经检查过 os.path.exists
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] 错误：匹配结果文件未找到: {MATCHED_JOBS_SUMMARY_PATH}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ====== 定时任务因文件未找到而中止 ======")
         return
     except Exception as e:
-        print(f"错误：读取匹配结果文件时发生未知错误: {e}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] 错误：读取匹配结果文件时发生未知错误: {e}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ====== 定时任务因文件读取错误而中止 ======")
         return
 
     summary = report_data.get("summary", "无总结信息。")
     matched_jobs = report_data.get("matched_jobs", [])
     other_jobs = report_data.get("other_jobs", []) # 新增：获取其他岗位
     timestamp = report_data.get("timestamp", "未知时间")
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] 数据摘要：核心匹配 {len(matched_jobs)} 个，其他关注 {len(other_jobs)} 个。")
     
     # 邮件主题
     subject = f"您的每日职位匹配报告 - {datetime.now().strftime('%Y-%m-%d')}"
@@ -210,7 +221,9 @@ def send_daily_job_report():
     """
 
     # 发送邮件至配置的收件人
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 3/3] 正在准备发送邮件...")
     send_email(subject, html_body, RECIPIENT_EMAIL)
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ====== 定时任务流程执行完毕 ======")
 
 
 def main_scheduler_loop():
@@ -220,16 +233,19 @@ def main_scheduler_loop():
     print("定时任务调度器已启动...")
     print(f"邮件发送时间已设置为每天: {EMAIL_SEND_TIME}")
     print("按 Ctrl+C 退出。")
+    print("调度器正在等待下一个执行周期...")
 
     # 安排每天的任务
     schedule.every().day.at(EMAIL_SEND_TIME).do(send_daily_job_report)
 
     try:
         while True:
+            # 在每次检查前打印当前时间，方便调试
+            # print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 调度器心跳: 检查待执行任务...", end='\\r') # \\r 会覆盖上一行，比较整洁
             schedule.run_pending()
-            time.sleep(1)
+            time.sleep(1) # 每秒检查一次
     except KeyboardInterrupt:
-        print("\n定时任务调度器已停止。")
+        print("\\n定时任务调度器已停止。")
         sys.exit(0)
 
 if __name__ == "__main__":
