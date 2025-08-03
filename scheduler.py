@@ -15,6 +15,9 @@ from config import (
     EMAIL_SEND_TIME, MATCHED_JOBS_SUMMARY_PATH
 )
 
+# 导入主流程
+from main import run_job_agent_pipeline
+
 def send_email(subject, body_html, to_email):
     """
     通过SMTP发送邮件
@@ -99,10 +102,20 @@ def job_to_html(job):
 
 def send_daily_job_report():
     """
-    定时任务：读取匹配结果并发送邮件
+    定时任务：执行数据抓取和处理，然后读取匹配结果并发送邮件
     """
-    print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 执行定时任务：发送每日职位报告...")
+    print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 执行定时任务：开始数据抓取和处理流程...")
     
+    # 1. 执行数据抓取和处理流水线
+    try:
+        run_job_agent_pipeline()
+        print("数据抓取和处理流程执行完毕。")
+    except Exception as e:
+        print(f"数据抓取和处理流程执行失败: {e}")
+        # 如果流水线失败，则不继续发送邮件
+        return
+
+    # 2. 检查并读取新生成的匹配结果文件
     if not os.path.exists(MATCHED_JOBS_SUMMARY_PATH):
         print(f"错误：匹配结果文件未找到: {MATCHED_JOBS_SUMMARY_PATH}")
         return
@@ -209,11 +222,7 @@ def main_scheduler_loop():
     print("按 Ctrl+C 退出。")
 
     # 安排每天的任务
-    # schedule.every().day.at(EMAIL_SEND_TIME).do(send_daily_job_report)
-    # 为了测试，可以先用每分钟执行一次
-    schedule.every(1).minutes.do(send_daily_job_report) # 测试用，每分钟发送一次
-    # 正式使用时，请注释掉上一行，并取消注释下一行
-    # schedule.every().day.at(EMAIL_SEND_TIME).do(send_daily_job_report)
+    schedule.every().day.at(EMAIL_SEND_TIME).do(send_daily_job_report)
 
     try:
         while True:
@@ -224,41 +233,4 @@ def main_scheduler_loop():
         sys.exit(0)
 
 if __name__ == "__main__":
-    # 在启动调度器前，可以先手动运行一次main.py以确保数据是最新的
-    # 或者可以设计成调度器在发送邮件前先调用main.py的流程
-    print("在启动调度器前，是否先运行一次数据抓取和处理流程？(y/n)")
-    # choice = input("> ").strip().lower()
-    choice = 'y' # 为了自动化，暂时默认为y
-    if choice == 'y':
-        print("正在执行数据抓取和处理流程...")
-        # 需要确保main.py在同一个目录下，或者通过模块方式调用
-        # 这里简单使用exec，但更推荐将main.py的逻辑封装成函数后导入调用
-        try:
-            # 假设main.py和scheduler.py在同一目录
-            # 这种方式不是最佳实践，最佳实践是将main.py的逻辑封装成函数
-            # from main import run_job_agent_pipeline
-            # run_job_agent_pipeline()
-            # 为了简单起见，这里使用subprocess或直接exec
-            import subprocess
-            import sys
-            
-            # 获取当前脚本所在的目录
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            main_py_path = os.path.join(current_dir, 'main.py')
-            
-            print(f"正在执行: {main_py_path}")
-            # 使用 errors='replace' 来处理无法解码的字符，避免程序崩溃
-            result = subprocess.run([sys.executable, main_py_path], capture_output=True, text=True, encoding='utf-8', errors='replace')
-            
-            if result.returncode == 0:
-                print("数据抓取和处理流程执行成功。")
-                if result.stdout:
-                    print("标准输出:\n", result.stdout)
-            else:
-                print("数据抓取和处理流程执行失败。")
-                if result.stderr:
-                    print("标准错误:\n", result.stderr)
-        except Exception as e:
-            print(f"调用main.py时出错: {e}")
-
     main_scheduler_loop()
