@@ -4,11 +4,6 @@ beautifulsoup4
 
 # 用于数据处理和分析
 pandas
-# scikit-learn # 已不再需要，可以移除或注释掉
-
-# 用于自然语言处理 (旧版SpaCy，保留以防备用)
-# spacy
-# 备注: 请额外运行 'python -m spacy download zh_core_web_md' 来下载中文模型
 
 # 用于解析RSS源
 feedparser
@@ -21,3 +16,6 @@ schedule
 
 # 用于从 .env 文件加载环境变量
 python-dotenv
+
+# 用于解析OPML文件
+lxml
