@@ -65,8 +65,8 @@ def summarize_and_match_jobs(df_jobs):
 
     # 将DataFrame转换为JSON字符串，方便发送给AI
     # 限制发送的职位数量，避免超出token限制
-    # 增加发送的职位数量到100个，为AI提供更多选择以满足数量要求
-    jobs_json_string = df_jobs.head(100).to_json(orient='records', force_ascii=False)
+    # 增加发送的职位数量到66个，为AI提供更多选择以满足数量要求
+    jobs_json_string = df_jobs.head(66).to_json(orient='records', force_ascii=False)
     
     user_profile = f"用户学历: {USER_EDUCATION}, 专业: {USER_MAJOR}"
 

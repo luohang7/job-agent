@@ -42,14 +42,14 @@ def send_email(subject, body_html, to_email):
         if SMTP_PORT == 465:
             print(f"尝试使用SSL连接到 {SMTP_SERVER}:{SMTP_PORT}...")
             # 使用SMTP_SSL，它会自动处理SSL握手，不需要再调用starttls()
-            with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=10) as server:
+            with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=10, local_hostname='localhost') as server:
                 server.set_debuglevel(1)  # 打印调试信息
                 server.login(SMTP_USERNAME, SMTP_PASSWORD)
                 server.send_message(msg)
         else:
             print(f"尝试使用TLS连接到 {SMTP_SERVER}:{SMTP_PORT}...")
             # 使用标准的SMTP，然后手动升级到TLS
-            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as server:
+            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10, local_hostname='localhost') as server:
                 server.set_debuglevel(1)  # 打印调试信息
                 server.starttls()  # 启用安全传输模式
                 server.login(SMTP_USERNAME, SMTP_PASSWORD)
