@@ -98,11 +98,6 @@ def run_job_agent_pipeline():
             markdown = scraped_data["data"]["markdown"]
             zhaopin_jobs = parse_zhaopin_markdown(markdown)
             if zhaopin_jobs:
-                # --- (临时调试代码) ---
-                print("  [调试] 正在将解析出的智联职位保存到 temp_zhaopin_jobs.json...")
-                with open('temp_zhaopin_jobs.json', 'w', encoding='utf-8') as f:
-                    json.dump(zhaopin_jobs, f, ensure_ascii=False, indent=4)
-                # --- (临时调试代码结束) ---
                 all_raw_jobs.extend(zhaopin_jobs)
                 print(f"  成功从 智联招聘(Firecrawl) 获取 {len(zhaopin_jobs)} 条数据。")
         else:
