@@ -113,8 +113,8 @@ def summarize_market_trends(df_jobs):
     if not client or df_jobs.empty:
         return "因数据不足或AI服务未配置，无法生成市场总结。"
 
-    # 为了节省token，我们只给AI看职位标题和描述的关键部分
-    sample_jobs_string = df_jobs.head(100)[['title', 'clean_description']].to_string(index=False)
+    # 为了节省token，我们只给AI看职位标题和来源
+    sample_jobs_string = df_jobs.head(100)[['title', 'source']].to_string(index=False)
 
     prompt = f"""
     你是一个敏锐的市场分析师。请根据以下近百个职位列表的概览，为求职者撰写一段150-200字的宏观市场趋势分析。

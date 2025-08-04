@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import os
 import re
+import time
 
 # 导入配置
 from config import OPML_FILE_PATH, MATCHED_JOBS_SUMMARY_PATH, ZHAOPIN_SEARCH_URL, ZHAOPIN_MAX_PAGES
@@ -176,7 +177,9 @@ def run_job_agent_pipeline():
         print(f"本块处理完成。累计核心匹配: {len(all_matched_jobs)}，其他关注: {len(all_other_jobs)}")
 
     # (Reduce步骤) 对所有职位进行最终的宏观市场总结
-    print("\n所有职位块匹配完成，开始生成最终市场总结...")
+    print("\n所有职位块匹配完成，为避免API速率超限，开始15秒冷却...")
+    time.sleep(15)
+    print("冷却结束，开始生成最终市场总结...")
     final_summary = summarize_market_trends(df_jobs)
 
     # --- 3. 保存结果 ---
