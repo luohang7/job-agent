@@ -10,8 +10,11 @@ GIVE_ME_OC_URL = os.getenv("GIVE_ME_OC_URL", "https://www.givemeoc.com/")
 
 # 模拟浏览器请求头，防止被识别为爬虫
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    'Connection': 'keep-alive',
+    'Referer': 'https://www.zhaopin.com/',
 }
 
 # --- 数据存储 ---
@@ -40,3 +43,6 @@ RECIPIENT_EMAIL = os.getenv("RECIPIENT_EMAIL")  # 收件人邮箱地址
 # --- 定时任务配置 ---
 # 邮件发送时间，格式为 "HH:MM"，24小时制
 EMAIL_SEND_TIME = os.getenv("EMAIL_SEND_TIME", "09:00")  # 例如: "09:00" 表示每天上午9点发送
+
+# --- Firecrawl API (用于抓取JS渲染的网站) ---
+FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")

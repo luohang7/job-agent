@@ -5,6 +5,7 @@ import requests
 import time
 from bs4 import BeautifulSoup
 from config import HEADERS
+from datetime import datetime, timedelta, timezone
 
 class WechatRssScraper:
     """
@@ -53,6 +54,12 @@ class WechatRssScraper:
         print(f"开始从RSS源抓取文章: {self.rss_url}")
         
         jobs = []
+        # 定义招聘相关的关键词列表
+        keywords = ['招聘', '求职', '内推', '实习', '校招', '社招', '岗位', '职位', 'Hiring', 'hiring']
+        
+        # 计算24小时前的时间点 (使用UTC以正确比较)
+        twenty_four_hours_ago = datetime.now(timezone.utc) - timedelta(hours=24)
+
         try:
             # 1. 解析RSS源
             feed = feedparser.parse(self.rss_url)
@@ -65,14 +72,28 @@ class WechatRssScraper:
                 print("未能从RSS源中获取到任何文章。")
                 return []
 
+            print(f"从RSS源获取到 {len(feed.entries)} 篇文章，开始根据时间和关键词进行过滤...")
+
             # 2. 遍历文章条目
             for entry in feed.entries:
+                # 检查文章发布时间
+                published_time = None
+                if hasattr(entry, 'published_parsed') and entry.published_parsed:
+                    # 将feedparser的struct_time转换为带时区的datetime对象
+                    published_time = datetime.fromtimestamp(time.mktime(entry.published_parsed), tz=timezone.utc)
+                elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
+                    published_time = datetime.fromtimestamp(time.mktime(entry.updated_parsed), tz=timezone.utc)
+
+                # 如果没有发布时间，或者时间早于24小时前，则跳过
+                if not published_time or published_time < twenty_four_hours_ago:
+                    continue
+
                 title = entry.title
                 article_url = entry.link
                 
-                # 简单判断标题是否和招聘相关
-                if '招聘' in title or '求职' in title or '内推' in title:
-                    print(f"  发现相关文章:《{title}》，正在抓取内容...")
+                # 判断标题是否包含任何一个关键词
+                if any(keyword in title for keyword in keywords):
+                    print(f"  发现相关文章:《{title}》(发布于 {published_time.strftime('%Y-%m-%d %H:%M:%S %Z')})，正在抓取内容...")
                     
                     # 3. 抓取并解析文章内容
                     article_html = self.scrape_article_content(article_url)
@@ -97,7 +118,6 @@ class WechatRssScraper:
                         }
                         jobs.append(job_data)
                     
-                    # 礼貌性延迟，避免请求过于频繁
                     time.sleep(2)
 
             print(f"从RSS源抓取到 {len(jobs)} 个相关职位信息。")
@@ -106,3 +126,4 @@ class WechatRssScraper:
         except Exception as e:
             print(f"通过RSS抓取时发生未知错误: {e}")
             return []
+
