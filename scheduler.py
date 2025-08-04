@@ -114,7 +114,6 @@ def send_daily_job_report():
     except Exception as e:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 1/3] 错误：数据抓取和处理流水线执行失败: {e}")
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ====== 定时任务因流水线失败而中止 ======")
-        # 如果流水线失败，则不继续发送邮件
         return
 
     # 2. 检查并读取新生成的匹配结果文件
@@ -126,34 +125,30 @@ def send_daily_job_report():
 
     try:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] 成功找到文件，正在读取和解析JSON...")
-        # 使用 errors='replace' 来处理文件中可能存在的非UTF-8编码字符，防止解码失败
         with open(MATCHED_JOBS_SUMMARY_PATH, 'r', encoding='utf-8', errors='replace') as f:
             report_data = json.load(f)
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] JSON文件解析成功。")
-    except json.JSONDecodeError as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] 错误：解析匹配结果文件失败: {e}")
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ====== 定时任务因JSON解析失败而中止 ======")
-        return
-    except FileNotFoundError:
-        # 这个理论上不会发生，因为前面已经检查过 os.path.exists
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] 错误：匹配结果文件未找到: {MATCHED_JOBS_SUMMARY_PATH}")
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ====== 定时任务因文件未找到而中止 ======")
-        return
     except Exception as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] 错误：读取匹配结果文件时发生未知错误: {e}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] 错误：读取或解析匹配结果文件失败: {e}")
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ====== 定时任务因文件读取错误而中止 ======")
         return
 
     summary = report_data.get("summary", "无总结信息。")
-    matched_jobs = report_data.get("matched_jobs", [])
-    other_jobs = report_data.get("other_jobs", []) # 新增：获取其他岗位
+    all_matched_jobs = report_data.get("matched_jobs", [])
+    all_other_jobs = report_data.get("other_jobs", [])
     timestamp = report_data.get("timestamp", "未知时间")
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] 数据摘要：核心匹配 {len(matched_jobs)} 个，其他关注 {len(other_jobs)} 个。")
     
-    # 邮件主题
+    # 新增：限制邮件中展示的职位数量
+    max_matched_in_email = 30
+    max_other_in_email = 30
+    matched_jobs_in_email = all_matched_jobs[:max_matched_in_email]
+    other_jobs_in_email = all_other_jobs[:max_other_in_email]
+
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 2/3] 数据摘要：核心匹配 {len(all_matched_jobs)} 个，其他关注 {len(all_other_jobs)} 个。")
+    print(f"    将在邮件中展示最多 {max_matched_in_email} 个核心匹配和 {max_other_in_email} 个其他关注职位。")
+    
     subject = f"您的每日职位匹配报告 - {datetime.now().strftime('%Y-%m-%d')}"
 
-    # 邮件正文 (HTML格式)
     html_body = f"""
     <html>
     <head></head>
@@ -164,13 +159,13 @@ def send_daily_job_report():
         <h3>市场汇总与分析</h3>
         <p>{summary.replace(chr(10), '<br>')}</p>
         
-        <h3>核心匹配职位</h3>
+        <h3>核心匹配职位 (展示前 {len(matched_jobs_in_email)}/{len(all_matched_jobs)} 个)</h3>
     """
     
-    if matched_jobs:
+    if matched_jobs_in_email:
         html_body += """
         <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-            <thead style="background-color: #e6f7ff; /* 轻微不同的背景色区分 */
+            <thead style="background-color: #e6f7ff;">
                 <tr>
                     <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">职位名称</th>
                     <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">公司</th>
@@ -180,7 +175,7 @@ def send_daily_job_report():
             </thead>
             <tbody>
         """
-        for job in matched_jobs:
+        for job in matched_jobs_in_email:
             html_body += job_to_html(job)
         html_body += """
             </tbody>
@@ -189,12 +184,11 @@ def send_daily_job_report():
     else:
         html_body += "<p>今日暂无核心匹配的职位。</p>"
 
-    # 新增：其他值得关注职位部分
-    html_body += "<br><h3>其他值得关注职位</h3>"
-    if other_jobs:
+    html_body += f"<br><h3>其他值得关注职位 (展示前 {len(other_jobs_in_email)}/{len(all_other_jobs)} 个)</h3>"
+    if other_jobs_in_email:
         html_body += """
         <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-            <thead style="background-color: #f0f0f0; /* 另一种背景色区分 */
+            <thead style="background-color: #f0f0f0;">
                 <tr>
                     <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">职位名称</th>
                     <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">公司</th>
@@ -204,8 +198,8 @@ def send_daily_job_report():
             </thead>
             <tbody>
         """
-        for job in other_jobs:
-            html_body += job_to_html(job) # 复用同一个HTML生成函数
+        for job in other_jobs_in_email:
+            html_body += job_to_html(job)
         html_body += """
             </tbody>
         </table>
@@ -220,7 +214,6 @@ def send_daily_job_report():
     </html>
     """
 
-    # 发送邮件至配置的收件人
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [步骤 3/3] 正在准备发送邮件...")
     send_email(subject, html_body, RECIPIENT_EMAIL)
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ====== 定时任务流程执行完毕 ======")

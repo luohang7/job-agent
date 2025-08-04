@@ -3,6 +3,7 @@
 import feedparser
 import requests
 import time
+import calendar
 from bs4 import BeautifulSoup
 from config import HEADERS
 from datetime import datetime, timedelta, timezone
@@ -76,13 +77,25 @@ class WechatRssScraper:
 
             # 2. 遍历文章条目
             for entry in feed.entries:
+
                 # 检查文章发布时间
                 published_time = None
-                if hasattr(entry, 'published_parsed') and entry.published_parsed:
-                    # 将feedparser的struct_time转换为带时区的datetime对象
-                    published_time = datetime.fromtimestamp(time.mktime(entry.published_parsed), tz=timezone.utc)
-                elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
-                    published_time = datetime.fromtimestamp(time.mktime(entry.updated_parsed), tz=timezone.utc)
+                # 放弃使用 *_parsed 字段，直接解析原始日期字符串
+                date_string = entry.get('updated') or entry.get('published')
+                
+                if date_string:
+                    try:
+                        # 手动解析RFC 822/1123格式的日期字符串, e.g., "Mon, 04 Aug 2025 08:00:00"
+                        # 用户指出此时间为UTC+8
+                        cst_tz = timezone(timedelta(hours=8))
+                        naive_dt = datetime.strptime(date_string, "%a, %d %b %Y %H:%M:%S")
+                        # 将其指定为UTC+8时区
+                        aware_dt = naive_dt.replace(tzinfo=cst_tz)
+                        # 转换为UTC时区以便与 twenty_four_hours_ago (UTC) 进行比较
+                        published_time = aware_dt.astimezone(timezone.utc)
+                    except ValueError:
+                        print(f"  [警告] 无法自动解析日期字符串: {date_string}，跳过此文章。")
+                        continue
 
                 # 如果没有发布时间，或者时间早于24小时前，则跳过
                 if not published_time or published_time < twenty_four_hours_ago:

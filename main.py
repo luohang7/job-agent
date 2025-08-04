@@ -11,7 +11,7 @@ from config import OPML_FILE_PATH, MATCHED_JOBS_SUMMARY_PATH, ZHAOPIN_SEARCH_URL
 from scraping.givemeoc_scraper import GiveMeOcScraper
 from scraping.opml_rss_scraper import OpmlRssScraper
 from scraping.firecrawl_scraper import FirecrawlScraper
-from nlp.standardize import process_jobs_dataframe, summarize_and_match_jobs
+from nlp.standardize import process_jobs_dataframe, match_jobs_in_chunk, summarize_market_trends
 
 def parse_zhaopin_markdown(markdown_content):
     """
@@ -144,26 +144,51 @@ def run_job_agent_pipeline():
 
     print(f"\n总共获取到 {len(all_raw_jobs)} 条原始职位数据。")
 
-    # --- 2. 数据处理与NLP分析 ---
-    print("\n[STEP 2/3] 正在清洗数据并进行AI分析...")
+    # --- 2. 数据处理与NLP分析 (分块处理) ---
+    print("\n[STEP 2/3] 正在清洗数据并进行AI分块分析...")
     
     df_jobs = process_jobs_dataframe(all_raw_jobs)
     if df_jobs.empty:
         print("数据清洗后无有效数据，程序退出。")
         return
 
-    ai_result = summarize_and_match_jobs(df_jobs)
+    # 初始化用于收集所有匹配结果的列表
+    all_matched_jobs = []
+    all_other_jobs = []
+    chunk_size = 20 # 每次处理20个职位
+    num_chunks = (len(df_jobs) - 1) // chunk_size + 1
+
+    print(f"职位数据将被分为 {num_chunks} 块进行处理...")
+
+    for i in range(num_chunks):
+        start_index = i * chunk_size
+        end_index = start_index + chunk_size
+        df_chunk = df_jobs.iloc[start_index:end_index]
+        
+        print(f"\n--- 处理第 {i+1}/{num_chunks} 块 (职位 {start_index+1}-{end_index}) ---")
+        chunk_result = match_jobs_in_chunk(df_chunk)
+        
+        if chunk_result.get("matched_jobs"):
+            all_matched_jobs.extend(chunk_result["matched_jobs"])
+        if chunk_result.get("other_jobs"):
+            all_other_jobs.extend(chunk_result["other_jobs"])
+        
+        print(f"本块处理完成。累计核心匹配: {len(all_matched_jobs)}，其他关注: {len(all_other_jobs)}")
+
+    # (Reduce步骤) 对所有职位进行最终的宏观市场总结
+    print("\n所有职位块匹配完成，开始生成最终市场总结...")
+    final_summary = summarize_market_trends(df_jobs)
 
     # --- 3. 保存结果 ---
-    print("\n[STEP 3/3] 正在保存AI处理结果...")
+    print("\n[STEP 3/3] 正在整合并保存AI处理结果...")
     
     os.makedirs(os.path.dirname(MATCHED_JOBS_SUMMARY_PATH), exist_ok=True)
     
     final_output = {
         "timestamp": pd.Timestamp.now().isoformat(),
-        "summary": ai_result.get("summary", "无总结"),
-        "matched_jobs": ai_result.get("matched_jobs", []),
-        "other_jobs": ai_result.get("other_jobs", []) # 确保other_jobs也被保存
+        "summary": final_summary,
+        "matched_jobs": all_matched_jobs,
+        "other_jobs": all_other_jobs
     }
 
     with open(MATCHED_JOBS_SUMMARY_PATH, 'w', encoding='utf-8') as f:

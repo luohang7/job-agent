@@ -6,12 +6,10 @@ import openai
 from config import OPENAI_API_KEY, OPENAI_BASE_URL, GEMINI_MODEL_NAME, USER_EDUCATION, USER_MAJOR
 
 # 初始化OpenAI客户端
-# 注意：这里假设Gemini模型可以通过OpenAI兼容的接口调用
-# 如果不是，需要使用Google的GenerativeAI库
 try:
     client = openai.OpenAI(
         api_key=OPENAI_API_KEY,
-        base_url=OPENAI_BASE_URL # 如果使用官方OpenAI，此行可省略或为默认值
+        base_url=OPENAI_BASE_URL
     )
 except Exception as e:
     print(f"初始化OpenAI客户端失败: {e}")
@@ -19,9 +17,7 @@ except Exception as e:
 
 def clean_text(text):
     if not isinstance(text, str): return ""
-    # 移除多余的空白字符和换行符
     text = re.sub(r'\s+', ' ', text).strip()
-    # 移除可能干扰JSON解析的特殊字符
     text = text.replace('\\', '\\\\').replace('"', '\\\"')
     return text
 
@@ -33,7 +29,6 @@ def process_jobs_dataframe(jobs_list):
         return pd.DataFrame()
     df = pd.DataFrame(jobs_list)
     
-    # 确保关键列存在
     for col in ['title', 'description', 'company', 'source', 'url']:
         if col not in df.columns: 
             df[col] = ''
@@ -44,113 +39,107 @@ def process_jobs_dataframe(jobs_list):
     df['source'] = df['source'].fillna('未知来源')
     df['url'] = df['url'].fillna('')
     
-    # 清理描述文本
     df['clean_description'] = df['description'].apply(clean_text)
     
     return df
 
-def summarize_and_match_jobs(df_jobs):
+def match_jobs_in_chunk(df_chunk):
     """
-    使用Gemini模型汇总和匹配职位。
-    :param df_jobs: 包含所有职位信息的DataFrame
-    :return: 一个包含匹配职位和AI总结的字典
+    (新) 使用Gemini模型仅对一小块职位进行匹配，不进行总结。
+    :param df_chunk: 包含一小块职位信息的DataFrame
+    :return: 一个包含匹配职位列表的字典
     """
     if not client:
         print("OpenAI客户端未初始化，无法进行AI匹配。")
-        return {"summary": "AI服务未配置，无法生成总结。", "matched_jobs": []}
+        return {"matched_jobs": [], "other_jobs": []}
 
-    if df_jobs.empty:
-        print("没有职位数据可供分析。")
-        return {"summary": "今日没有新的职位信息。", "matched_jobs": []}
+    if df_chunk.empty:
+        return {"matched_jobs": [], "other_jobs": []}
 
-    # 将DataFrame转换为JSON字符串，方便发送给AI
-    # 限制发送的职位数量，避免超出token限制
-    # 增加发送的职位数量到50个，为AI提供更多选择以满足数量要求
-    jobs_json_string = df_jobs.head(50).to_json(orient='records', force_ascii=False)
-    
+    jobs_json_string = df_chunk.to_json(orient='records', force_ascii=False)
     user_profile = f"用户学历: {USER_EDUCATION}, 专业: {USER_MAJOR}"
 
-    # 构建发送给AI的Prompt
     prompt = f"""
-    你是一个专业的求职顾问。请根据以下用户背景和今日最新的职位信息，进行汇总、分析，并筛选出职位。
+    你是一个专业的求职顾问。请根据以下用户背景和一小批职位信息，筛选出匹配的职位。
 
     **用户背景:**
     {user_profile}
 
-    **今日职位信息 (JSON格式):**
+    **本批次的职位信息 (JSON格式):**
     ```json
     {jobs_json_string}
     ```
 
     **请严格执行以下任务:**
-    1.  **汇总与分析**: 对所有职位信息进行简要汇总，分析今日职位市场的整体趋势和亮点。
-    2.  **核心匹配岗位筛选**: 你必须严格根据用户的学历和专业背景，从上述职位中筛选出 **10-15个** 最匹配的职位。这些职位应与用户的背景高度相关。**这是一个硬性数量要求，请务必遵守。** 如果高度相关的职位不足10个，请尽量选择最接近的，直到凑够10个。如果无法凑够，请在推荐理由中说明“因高度相关岗位较少，此岗位为次优选择”。
-    3.  **核心匹配岗位说明**: 对每个核心匹配的职位，说明推荐理由（例如：技能匹配度高、行业相关、发展前景好等）。
-    4.  **其他值得关注岗位筛选**: 除了核心匹配岗位外，你**必须**再从剩余的职位中筛选出 **15-20个** 其他值得关注的岗位。这些岗位可能：
-        -   属于新兴或交叉领域，虽然不完全对口，但未来发展潜力巨大。
-        -   要求的技能与用户现有技能有较高的可迁移性。
-        -   公司或行业本身非常有吸引力，即使职位不完全匹配。
-        -   提供了独特的职业发展路径或学习机会。
-        **这也是一个硬性数量要求，请务必遵守。** 如果值得关注的岗位不足15个，请尽量选择有潜力的，直到凑够15个。如果无法凑够，请在推荐理由中说明“因值得关注的岗位较少，此岗位为备选推荐”。
-    5.  **其他岗位说明**: 对每个其他值得关注的岗位，简要说明推荐理由（例如：行业前景好、技能可迁移、公司平台优秀等）。
-    6.  **格式化输出**: 请严格按照下面的JSON格式返回结果，确保`matched_jobs`和`other_jobs`列表中的每个对象都包含原始职位信息中的`title`, `company`, `source`, `url`。
+    1.  **核心匹配岗位筛选**: 严格根据用户的学历和专业背景，从上述职位中筛选出 **最多5个** 最匹配的职位。
+    2.  **其他值得关注岗位筛选**: 从剩余职位中筛选出 **最多5个** 其他值得关注的岗位（例如：行业前景好、技能可迁移等）。
+    3.  **格式化输出**: 严格按照下面的JSON格式返回结果，确保每个对象都包含`title`, `company`, `source`, `url`和`reason`。
 
     **输出格式:**
     ```json
     {{
-      "summary": "这里是你的汇总分析文本...",
       "matched_jobs": [
-        // 注意：此列表必须包含 10-15 个核心匹配职位对象
-        {{
-          "title": "核心匹配职位标题1",
-          "company": "公司名称1",
-          "source": "来源1",
-          "url": "链接1",
-          "reason": "核心匹配推荐理由1..."
-        }}
-        // ... 更多核心匹配职位
+        {{"title": "职位1", "company": "公司1", "source": "来源1", "url": "链接1", "reason": "推荐理由1..."}}
       ],
       "other_jobs": [
-        // 注意：此列表必须包含 15-20 个其他值得关注职位对象
-        {{
-          "title": "其他值得关注职位标题1",
-          "company": "公司名称3",
-          "source": "来源3",
-          "url": "链接3",
-          "reason": "其他岗位推荐理由1..."
-        }}
-        // ... 更多其他值得关注职位
+        {{"title": "职位2", "company": "公司2", "source": "来源2", "url": "链接2", "reason": "推荐理由2..."}}
       ]
     }}
     ```
     """
 
-    print("正在调用AI模型进行职位分析和匹配...")
+    print(f"正在对 {len(df_chunk)} 个职位进行AI匹配...")
     try:
         response = client.chat.completions.create(
             model=GEMINI_MODEL_NAME,
             messages=[
-                {"role": "system", "content": "你是一个专业的求职顾问，擅长分析职位信息并为用户提供个性化建议。"},
+                {"role": "system", "content": "你是一个专业的求职顾问，专注于精准筛选职位。"},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.5, # 控制创造性，0.5比较平衡
-            response_format={"type": "json_object"} # 强制AI返回JSON格式
+            temperature=0.2,
+            response_format={"type": "json_object"}
         )
-        
-        ai_response_content = response.choices[0].message.content
-        
-        # 解析AI返回的JSON
-        result = json.loads(ai_response_content)
-        print("AI分析和匹配完成。")
-        return result
-
-    except openai.APIError as e:
-        print(f"OpenAI API返回错误: {e}")
-        return {"summary": f"AI服务调用出错: {e}", "matched_jobs": []}
-    except json.JSONDecodeError as e:
-        print(f"解析AI返回的JSON失败: {e}")
-        print(f"AI原始返回: {ai_response_content}")
-        return {"summary": "AI返回结果格式错误，无法解析。", "matched_jobs": []}
+        return json.loads(response.choices[0].message.content)
     except Exception as e:
-        print(f"调用AI模型时发生未知错误: {e}")
-        return {"summary": f"处理过程中发生未知错误: {e}", "matched_jobs": []}
+        print(f"调用AI进行职位匹配时出错: {e}")
+        return {"matched_jobs": [], "other_jobs": []}
+
+def summarize_market_trends(df_jobs):
+    """
+    (新) 使用Gemini模型对所有职位进行最终的宏观市场总结。
+    :param df_jobs: 包含所有职位信息的DataFrame
+    :return: 一个包含市场总结的字符串
+    """
+    if not client or df_jobs.empty:
+        return "因数据不足或AI服务未配置，无法生成市场总结。"
+
+    # 为了节省token，我们只给AI看职位标题和描述的关键部分
+    sample_jobs_string = df_jobs.head(100)[['title', 'clean_description']].to_string(index=False)
+
+    prompt = f"""
+    你是一个敏锐的市场分析师。请根据以下近百个职位列表的概览，为求职者撰写一段150-200字的宏观市场趋势分析。
+    请重点分析：
+    - 当前招聘需求最旺盛的技术方向或职位类型是什么？
+    - 有哪些值得关注的新兴行业或公司？
+    - 对于求职者，你有什么具体的求职建议？
+
+    **职位概览:**
+    {sample_jobs_string}
+
+    请直接返回分析文本，不要包含任何额外的前缀或标题。
+    """
+
+    print("正在调用AI模型进行最终的市场趋势总结...")
+    try:
+        response = client.chat.completions.create(
+            model=GEMINI_MODEL_NAME,
+            messages=[
+                {"role": "system", "content": "你是一个专业的市场分析师，擅长从职位列表中洞察趋势。"},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"调用AI进行市场总结时出错: {e}")
+        return f"AI市场总结生成失败: {e}"
