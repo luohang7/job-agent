@@ -46,3 +46,9 @@ EMAIL_SEND_TIME = os.getenv("EMAIL_SEND_TIME", "09:00")  # 例如: "09:00" 表�
 
 # --- Firecrawl API (用于抓取JS渲染的网站) ---
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
+
+# --- 智联招聘爬虫配置 ---
+# 请在.env文件中设置此URL，并用 {page} 作为页码的占位符
+# 例如: https://www.zhaopin.com/sou/jl489/kwpython/p{page}
+ZHAOPIN_SEARCH_URL = os.getenv("ZHAOPIN_SEARCH_URL")
+ZHAOPIN_MAX_PAGES = int(os.getenv("ZHAOPIN_MAX_PAGES", 3)) # 默认抓取3页

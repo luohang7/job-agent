@@ -5,12 +5,12 @@ import os
 import re
 
 # 导入配置
-from config import OPML_FILE_PATH, MATCHED_JOBS_SUMMARY_PATH
+from config import OPML_FILE_PATH, MATCHED_JOBS_SUMMARY_PATH, ZHAOPIN_SEARCH_URL, ZHAOPIN_MAX_PAGES
 
 # 导入我们的模块
 from scraping.givemeoc_scraper import GiveMeOcScraper
 from scraping.opml_rss_scraper import OpmlRssScraper
-from scraping.firecrawl_scraper import FirecrawlScraper # 新增导入
+from scraping.firecrawl_scraper import FirecrawlScraper
 from nlp.standardize import process_jobs_dataframe, summarize_and_match_jobs
 
 def parse_zhaopin_markdown(markdown_content):
@@ -24,7 +24,6 @@ def parse_zhaopin_markdown(markdown_content):
     if not markdown_content:
         return jobs
 
-    # 使用每个职位块末尾的“收藏”作为明确的分割点
     job_blocks = markdown_content.split("收藏")
     print(f"  初步分割出 {len(job_blocks)} 个职位信息块，开始逐一解析...")
 
@@ -33,22 +32,18 @@ def parse_zhaopin_markdown(markdown_content):
             continue
 
         try:
-            # 提取职位名称和URL (修正了URL匹配规则)
             title_url_match = re.search(r'\[([^\]]+)\]\((https?://www\.zhaopin\.com/jobdetail/[^\)]+)\)', block)
             title = title_url_match.group(1).strip() if title_url_match else 'N/A'
             url = title_url_match.group(2).strip() if title_url_match else 'N/A'
 
             if url == 'N/A': continue
 
-            # 提取薪资 (更具适应性的表达式)
             salary_match = re.search(r'\n\s*((?:[\d.-]+(?:万|元))|面议)(?:·\d+薪)?\s*\n?', block)
             salary = salary_match.group(1).strip() if salary_match else '面议'
 
-            # 提取公司名称
             company_match = re.search(r'\[([^\]]+)\]\(https?://www\.zhaopin\.com/companydetail/[^\)]+\)', block)
             company = company_match.group(1).strip() if company_match else 'N/A'
 
-            # 提取地点、经验、学历 (更健壮的表达式)
             location, experience, education = 'N/A', 'N/A', 'N/A'
             details_match = re.search(r'location\.png\)\s*([^\n]+)\s+([^\n]+)\s+([^\n]+)', block)
             if details_match:
@@ -89,21 +84,30 @@ def run_job_agent_pipeline():
 
     # 1.1 (新增) 从智联招聘 (通过Firecrawl) 获取数据
     print("  正在从 智联招聘(Firecrawl) 获取数据...")
-    try:
-        firecrawl_scraper = FirecrawlScraper()
-        # 注意：此URL目前是写死的，只搜索Python
-        zhaopin_url = "https://www.zhaopin.com/sou/jl489/kwJ3FL9G8042CMSPCP00G9J6BCN4020NF5G9T0/p1"
-        scraped_data = firecrawl_scraper.scrape(zhaopin_url)
-        if scraped_data and scraped_data.get("data") and scraped_data["data"].get("markdown"):
-            markdown = scraped_data["data"]["markdown"]
-            zhaopin_jobs = parse_zhaopin_markdown(markdown)
-            if zhaopin_jobs:
-                all_raw_jobs.extend(zhaopin_jobs)
-                print(f"  成功从 智联招聘(Firecrawl) 获取 {len(zhaopin_jobs)} 条数据。")
-        else:
-            print("  未能从 智联招聘(Firecrawl) 获取有效数据。")
-    except Exception as e:
-        print(f"  从 智联招聘(Firecrawl) 获取数据时出错: {e}")
+    if not ZHAOPIN_SEARCH_URL:
+        print("  警告: 未在.env文件中设置ZHAOPIN_SEARCH_URL，跳过智联招聘抓取。")
+    else:
+        try:
+            firecrawl_scraper = FirecrawlScraper()
+            for page in range(1, ZHAOPIN_MAX_PAGES + 1):
+                zhaopin_url = ZHAOPIN_SEARCH_URL.format(page=page)
+                print(f"    正在抓取智联招聘第 {page}/{ZHAOPIN_MAX_PAGES} 页: {zhaopin_url}")
+                
+                scraped_data = firecrawl_scraper.scrape(zhaopin_url)
+                if scraped_data and scraped_data.get("data") and scraped_data["data"].get("markdown"):
+                    markdown = scraped_data["data"]["markdown"]
+                    zhaopin_jobs = parse_zhaopin_markdown(markdown)
+                    if zhaopin_jobs:
+                        all_raw_jobs.extend(zhaopin_jobs)
+                        print(f"    成功从该页解析出 {len(zhaopin_jobs)} 条数据。")
+                    else:
+                        print("    未能从该页解析出任何职位，可能已到达末页。")
+                        break
+                else:
+                    print("    未能从Firecrawl获取有效数据，停止抓取该渠道。")
+                    break
+        except Exception as e:
+            print(f"  从 智联招聘(Firecrawl) 获取数据时出错: {e}")
 
     # 1.2 从GiveMeOC获取数据
     print("  正在从 GiveMeOC 获取数据...")
