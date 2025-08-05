@@ -127,6 +127,48 @@ python scheduler.py
     docker-compose down
     ```
 
+## 🔄 升级指南
+
+当项目发布新版本时，升级非常简单。
+
+### Docker 用户 (推荐)
+
+如果你使用 Docker 部署，只需执行以下命令即可完成升级：
+
+```bash
+# 拉取最新代码
+git pull
+
+# 重新构建并启动服务
+docker-compose up --build -d
+```
+
+### 本地部署用户
+
+如果你在本地环境中运行，请执行以下步骤：
+
+```bash
+# 拉取最新代码
+git pull
+
+# (可选但推荐) 备份你的 .env 文件
+# cp .env .env.backup
+
+# 激活虚拟环境
+# .venv\Scripts\activate (Windows)
+# source .venv/bin/activate (macOS/Linux)
+
+# 更新依赖
+pip install -r requirements.txt --upgrade
+
+# 重新运行程序
+python main.py
+# 或者启动定时任务
+# python scheduler.py
+```
+
+> **提示**: 升级后，建议将你的 `.env` 文件与 `.env.example` 进行比较，以确保没有新增或变更的配置项。
+
 ## 📁 项目结构
 
 ```
