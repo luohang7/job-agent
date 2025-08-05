@@ -22,7 +22,7 @@
 
 1.  **克隆项目**
     ```bash
-    git clone https://github.com/your-username/job-agent.git
+    git clone https://github.com/luohang7/job-agent.git
     cd job-agent
     ```
 
