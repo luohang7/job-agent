@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: job-agent:latest
     container_name: job-agent-app
     restart: unless-stopped # 容器退出时总是重启，除非手动停止
     volumes:
