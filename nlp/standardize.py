@@ -139,7 +139,8 @@ def summarize_market_trends(df_jobs):
             ],
             temperature=0.7
         )
-        return response.choices[0].message.content.strip()
+        content = response.choices[0].message.content
+        return content.strip() if content else ""
     except Exception as e:
         print(f"调用AI进行市场总结时出错: {e}")
         return f"AI市场总结生成失败: {e}"
