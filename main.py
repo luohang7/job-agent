@@ -156,7 +156,7 @@ def run_job_agent_pipeline():
     # 初始化用于收集所有匹配结果的列表
     all_matched_jobs = []
     all_other_jobs = []
-    chunk_size = 20 # 每次处理20个职位
+    chunk_size = 10 # 每次处理10个职位
     num_chunks = (len(df_jobs) - 1) // chunk_size + 1
 
     print(f"职位数据将被分为 {num_chunks} 块进行处理...")
