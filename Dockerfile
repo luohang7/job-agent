@@ -13,21 +13,19 @@ WORKDIR /app
 # 设置环境变量
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV TZ=Asia/Shanghai
 
 # 将 Debian 的软件源替换为国内镜像
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
-
-RUN apt-get update && apt-get install -y \
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && apt-get install -y \
     build-essential \
     pkg-config \
     libxml2-dev \
     libxslt1-dev \
     iputils-ping \
     curl \
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
-
-# 创建一个非 root 用户来运行应用
-RUN adduser --disabled-password --gecos '' appuser
 
 # 复制依赖文件
 COPY requirements.txt .
@@ -37,10 +35,7 @@ RUN python -m pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -i ${PYPI_INDEX_URL} -r requirements.txt
 
 # 复制项目代码到工作目录
-COPY --chown=appuser:appuser . .
-
-# 切换到非 root 用户
-USER appuser
+COPY . .
 
 # 增加健康检查
 HEALTHCHECK --interval=5m --timeout=30s --start-period=1m --retries=3 \

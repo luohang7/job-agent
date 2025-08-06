@@ -5,12 +5,10 @@ services:
       dockerfile: Dockerfile
       network: host
     image: job-agent:latest
-    container_name: job-agent-app
+    container_name: job-agent
     restart: unless-stopped
     volumes:
       - ./data:/app/data
     env_file:
       - .env
-    environment:
-      - TZ=Asia/Shanghai
     network_mode: "bridge"
