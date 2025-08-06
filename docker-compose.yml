@@ -22,3 +22,4 @@ services:
 networks:
   job_agent_net:
     driver: bridge
+    name: job_agent_net
