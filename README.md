@@ -146,11 +146,6 @@ python scheduler.py
 
 3.  **运行容器**:
     ```bash
-    # -d: 后台运行
-    # --env-file ./.env: 加载环境变量
-    # -v ./data:/app/data: 将本地 data 目录挂载到容器中，用于数据持久化
-    # --name job-agent: 为容器命名
-    # -e TZ=Asia/Shanghai: 设置时区，确保定时任务按本地时间执行
     docker run -d --env-file ./.env -v ./data:/app/data --name job-agent luohang2333/job-agent:latest
     ```
     > **注意**: ` -v ./data:/app/data` 会将当前目录下的 `data` 文件夹挂载到容器的 `/app/data` 目录。请确保在执行命令的路径下有正确的 `.env` 和 `data` 文件。
