@@ -21,6 +21,9 @@ services:
       # SMTP_PASSWORD=your_password
       # ...
       - .env
+    environment:
+      # 设置容器时区为亚洲/上海，确保定时任务按北京时间执行
+      - TZ=Asia/Shanghai
     network_mode: "bridge"
 
 # 注意：你需要在项目根目录下创建一个名为 `.env` 的文件（与 docker-compose.yml 同级）
