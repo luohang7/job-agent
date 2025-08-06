@@ -151,7 +151,7 @@ python scheduler.py
     # -v ./data:/app/data: 将本地 data 目录挂载到容器中，用于数据持久化
     # --name job-agent: 为容器命名
     # -e TZ=Asia/Shanghai: 设置时区，确保定时任务按本地时间执行
-    docker run -d --env-file ./.env -v ./data:/app/data -e TZ=Asia/Shanghai --name job-agent luohang2333/job-agent:latest
+    docker run -d --env-file ./.env -v ./data:/app/data --name job-agent luohang2333/job-agent:latest
     ```
     > **注意**: ` -v ./data:/app/data` 会将当前目录下的 `data` 文件夹挂载到容器的 `/app/data` 目录。请确保在执行命令的路径下有正确的 `.env` 和 `data` 文件。
 
@@ -193,7 +193,7 @@ python scheduler.py
     docker rm job-agent
 
     # 3. 使用新的镜像重新运行容器 (确保你的 .env 和 data 目录在当前路径)
-    docker run -d --env-file ./.env -v ./data:/app/data -e TZ=Asia/Shanghai --name job-agent luohang2333/job-agent:latest
+    docker run -d --env-file ./.env -v ./data:/app/data --name job-agent luohang2333/job-agent:latest
     ```
 
 ### 本地部署用户
