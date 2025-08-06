@@ -14,14 +14,11 @@ services:
     environment:
       - TZ=Asia/Shanghai
     networks:
-      - job_network
+      - job_agent_net
+    dns:
+      - 114.114.114.114
+      - 8.8.8.8
 
 networks:
-  job_network:
+  job_agent_net:
     driver: bridge
-    ipam:
-      driver: default
-      config:
-        - dns:
-            - 114.114.114.114
-            - 8.8.8.8
