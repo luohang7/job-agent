@@ -41,7 +41,7 @@ class FirecrawlScraper:
         print("正在执行 Firecrawl API 调用...")
         try:
             # 使用subprocess执行命令，并指定UTF-8编码
-            result = subprocess.run(command, capture_output=True, text=True, check=True, shell=True, encoding='utf-8')
+            result = subprocess.run(command, capture_output=True, text=True, check=True, encoding='utf-8')
             stdout = result.stdout
             
             if not stdout:

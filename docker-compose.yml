@@ -13,13 +13,7 @@ services:
       - .env
     environment:
       - TZ=Asia/Shanghai
-    networks:
-      - job_agent_net
     dns:
       - 114.114.114.114
       - 8.8.8.8
-
-networks:
-  job_agent_net:
-    driver: bridge
-    name: job_agent_net
+    network_mode: "bridge"
