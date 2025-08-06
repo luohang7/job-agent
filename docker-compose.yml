@@ -1,50 +1,27 @@
-version: '3.8'
-
 services:
   job-agent:
     build:
       context: .
       dockerfile: Dockerfile
+      network: host
     image: job-agent:latest
     container_name: job-agent-app
-    restart: unless-stopped # 容器退出时总是重启，除非手动停止
+    restart: unless-stopped
     volumes:
-      # 将宿主机的 data 目录挂载到容器的 /app/data 目录
-      # 这样可以持久化存储数据，如 matched_jobs_summary.json 和 WeWeRSS-All.opml
       - ./data:/app/data
     env_file:
-      # 从 .env 文件加载环境变量
-      # 你需要在与 docker-compose.yml 同级的目录下创建一个 .env 文件
-      # 并填入你的配置，例如：
-      # OPENAI_API_KEY=your_key
-      # SMTP_USERNAME=your_email@example.com
-      # SMTP_PASSWORD=your_password
-      # ...
       - .env
     environment:
-      # 设置容器时区为亚洲/上海，确保定时任务按北京时间执行
       - TZ=Asia/Shanghai
-    network_mode: "bridge"
+    networks:
+      - job_network
 
-# 注意：你需要在项目根目录下创建一个名为 `.env` 的文件（与 docker-compose.yml 同级）
-# 用于存放你的环境变量。这个文件不会被提交到 Git 仓库（已在 .gitignore 中）。
-#
-# .env 文件内容示例：
-# ---
-# OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-# OPENAI_BASE_URL=https://api.openai.com/v1
-# GEMINI_MODEL_NAME=gemini-2.0-flash-exp
-#
-# SMTP_SERVER=smtpdm.aliyun.com
-# SMTP_PORT=465
-# SMTP_USERNAME=noreply@yourdomain.com
-# SMTP_PASSWORD=your_aliyun_mail_push_password
-# RECIPIENT_EMAIL=target@example.com
-#
-# USER_EDUCATION=本科
-# USER_MAJOR=计算机科学与技术
-#
-# EMAIL_SEND_TIME=09:00
-# OPML_FILE_PATH=data/WeWeRSS-All.opml
-# MATCHED_JOBS_SUMMARY_PATH=data/matched_jobs_summary.json
-# ---
+networks:
+  job_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - dns:
+            - 114.114.114.114
+            - 8.8.8.8

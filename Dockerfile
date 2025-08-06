@@ -14,16 +14,16 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# 将 Debian 的软件源替换为国内镜像（如阿里云），以解决 apt-get 的 DNS 和网络问题。
+# 将 Debian 的软件源替换为国内镜像
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
 
-# 在安装Python依赖前，先安装系统级的构建工具。
 RUN apt-get update && apt-get install -y \
     build-essential \
     pkg-config \
     libxml2-dev \
     libxslt1-dev \
     iputils-ping \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建一个非 root 用户来运行应用
