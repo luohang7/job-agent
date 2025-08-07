@@ -80,7 +80,7 @@
     ZHAOPIN_MAX_PAGES=3 # 希望抓取的总页数
 
     # RSS订阅源文件路径
-    OPML_FILE_PATH=data/WeWeRSS-All.opml
+    OPML_FILE_PATH=data/rss_feed.opml
 
     # --- 定时任务配置 ---
     EMAIL_SEND_TIME=09:00 # 每日发送时间，24小时制
@@ -118,7 +118,7 @@ python scheduler.py
 
 1.  **准备 `.env` 文件**: 在项目根目录下，根据 `.env.example` 创建并填写好你的 `.env` 文件。Docker Compose 会自动加载此文件。
 
-2.  **准备数据文件**: 确保你的 `data/` 目录下有 `WeWeRSS-All.opml` 文件（如果需要）。
+2.  **准备数据文件**: 确保你的 `data/` 目录下有 `rss_feed.opml` 文件（如果需要）。
 
 3.  **构建并启动容器**:
     ```bash
@@ -141,7 +141,7 @@ python scheduler.py
 
 1.  **准备 `.env` 和数据文件**:
     *   在你的工作目录下，根据 `.env.example` 创建并填写好你的 `.env` 文件。
-    *   在同一目录下，创建一个 `data` 文件夹，并确保 `WeWeRSS-All.opml` 文件位于其中（如果需要）。
+    *   在同一目录下，创建一个 `data` 文件夹，并确保 `rss_feed.opml` 文件位于其中（如果需要）。
 
 2.  **拉取最新镜像**:
     ```bash
@@ -245,7 +245,7 @@ job-agent/
 │   └── standardize.py      # 数据清洗、AI模型调用与分块处理逻辑
 │
 └── data/                   # 数据存储目录
-    ├── WeWeRSS-All.opml    # RSS 订阅源 (需自行配置)
+    ├── rss_feed.opml    # RSS 订阅源 (需自行配置)
     └── matched_jobs_summary.json # AI 分析结果
 ```
 
