@@ -18,7 +18,7 @@ HEADERS = {
 }
 
 # --- 数据存储 ---
-OPML_FILE_PATH = os.getenv("OPML_FILE_PATH", "data/WeWeRSS-All.opml")
+OPML_FILE_PATH = os.getenv("OPML_FILE_PATH", "data/rss_feed.opml")
 MATCHED_JOBS_SUMMARY_PATH = os.getenv("MATCHED_JOBS_SUMMARY_PATH", "data/matched_jobs_summary.json")
 
 # --- 用户个人信息 ---
