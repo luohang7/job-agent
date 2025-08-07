@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="https://raw.githubusercontent.com/luohang7/job-agent/main/assets/logo.png" width="200" alt="Job Agent Logo">
+</div>
+
 # AI 智能求职代理 🤖💼
 
 一个由 AI 驱动的自动化求职助手，能够每日自动抓取、分析和匹配职位信息，并通过邮件为你推送个性化的求职报告。
