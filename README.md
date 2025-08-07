@@ -245,7 +245,7 @@ job-agent/
 │   └── standardize.py      # 数据清洗、AI模型调用与分块处理逻辑
 │
 └── data/                   # 数据存储目录
-    ├── rss_feed.opml    # RSS 订阅源 (需自行配置)
+    ├── rss_feed.opml       # RSS 订阅源 (需自行配置)
     └── matched_jobs_summary.json # AI 分析结果
 ```
 
