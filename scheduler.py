@@ -139,8 +139,8 @@ def send_daily_job_report():
     timestamp = report_data.get("timestamp", "未知时间")
     
     # 新增：限制邮件中展示的职位数量
-    max_matched_in_email = 30
-    max_other_in_email = 30
+    max_matched_in_email = 60
+    max_other_in_email = 60
     matched_jobs_in_email = all_matched_jobs[:max_matched_in_email]
     other_jobs_in_email = all_other_jobs[:max_other_in_email]
 
